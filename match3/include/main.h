@@ -12,5 +12,6 @@
 
 extern char board[BOARD_SIZE][BOARD_SIZE];
 extern Vector2 grid_origin;
+extern size_t score;
 
 void init_board();
