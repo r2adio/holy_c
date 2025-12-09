@@ -1,5 +1,4 @@
-#ifndef MAIN_H
-#define MAIN_H
+#pragma once
 
 #include "raylib.h"
 #include <math.h>
@@ -11,8 +10,7 @@
 #define TILE_SIZE 42
 #define TILE_TYPES 5
 
-char board[BOARD_SIZE][BOARD_SIZE];
+extern char board[BOARD_SIZE][BOARD_SIZE];
+extern Vector2 grid_origin;
 
 void init_board();
-
-#endif // !MAIN_H
