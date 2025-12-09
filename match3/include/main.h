@@ -10,6 +10,8 @@
 #define TILE_SIZE 42
 #define TILE_TYPES 5
 
+#define SCORE_FONT_SIZE 20
+
 extern char board[BOARD_SIZE][BOARD_SIZE];
 extern Vector2 grid_origin;
 extern size_t score;

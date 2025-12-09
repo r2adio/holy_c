@@ -2,6 +2,8 @@
 #include "raylib.h"
 
 size_t score = 0;
+Texture2D background;
+Font score_font;
 
 int main(void) {
   const int screen_width = 800;
@@ -11,11 +13,22 @@ int main(void) {
   SetTargetFPS(60);
   srand(time(NULL));
 
+  background = LoadTexture("assets/background.jpg");
+
+  score_font =
+      LoadFontEx("assets/PressStart2P-Regular.ttf", SCORE_FONT_SIZE, NULL, 0);
+
   init_board();
 
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(BLACK);
+
+    DrawTexturePro(background,
+                   (Rectangle){0, 0, background.width, background.height},
+                   (Rectangle){0, 0, GetScreenWidth(), GetScreenHeight()},
+                   (Vector2){0, 0}, 0.0f, WHITE);
+
     for (int y = 0; y < BOARD_SIZE; y++) {
       for (int x = 0; x < BOARD_SIZE; x++) {
         Rectangle rect = {grid_origin.x + (x * TILE_SIZE),
@@ -29,10 +42,15 @@ int main(void) {
       }
     }
 
-    DrawText(TextFormat("SCORE: %d", score), 20, 20, 25, ORANGE);
+    DrawTextEx(score_font, TextFormat("SCORE: %d", score), (Vector2){20, 20},
+               SCORE_FONT_SIZE, 1.0f, YELLOW);
+    // DrawText(TextFormat("SCORE: %d", score), 20, 20, 25, ORANGE);
 
     EndDrawing();
   }
+  UnloadFont(score_font);
+  UnloadTexture(background);
+
   CloseWindow();
   return 0;
 }
