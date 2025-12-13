@@ -1,0 +1,19 @@
+#+title: Building a TCP Server
+#+author: r2adio
+#+email: miya.musashi.moto1645@gmail.com
+
+* Terminology
+  * Socket:
+    - endpoint for sending or data over the network
+    - a socket consists of: ip address, port number, and transfer protocol(tcp)
+
+  * File descriptor:
+    - an interger that uniquely identifies an open file or socket in the OS
+    - writing to a file in the client's machine is done with help of a socket connection
+    - writing to the socket connection -> written in the client's machine (through a network)
+
+  * Segment:
+    - a small unit of data + TCP header + Source's (sender) port + Destination's (receiver) port
+
+  * Packet:
+    - Source's (sender) IP + segment + Destination's (receiver) IP
