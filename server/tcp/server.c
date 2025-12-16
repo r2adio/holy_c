@@ -8,6 +8,7 @@
 
 #define IP_ADDRESS "127.0.0.1" // IP address to listen on
 #define PORT 42069             // Port number to listen on
+#define BUFFER_SIZE 4096
 
 int main() {
   // creates a socket
@@ -48,7 +49,7 @@ int main() {
 
     printf("Connection accepted.\n");
 
-    char buffer[4096];
+    char buffer[BUFFER_SIZE];
     ssize_t bytes_read = read(new_socket, buffer, sizeof(buffer) - 1);
     if (bytes_read <= 0) {
       close(new_socket);
@@ -59,7 +60,7 @@ int main() {
     printf("Client message: %s\n", buffer);
 
     // Respond to the client
-    char response[4096];
+    char response[BUFFER_SIZE];
     snprintf(response, sizeof(response), "Server received your message: %s",
              buffer);
     write(new_socket, response, strlen(response)); // send response to client
