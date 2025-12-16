@@ -11,6 +11,7 @@
 int main() {
   int sock = 0;
   struct sockaddr_in serv_addr;
+  memset(&serv_addr, 0, sizeof(serv_addr));
   char buffer[BUFFER_SIZE] = {0};
   const char *client_msg = "this is a message from client";
 
@@ -37,16 +38,25 @@ int main() {
 
   printf("Connected to server on port %d\n", PORT);
 
-  send(sock, client_msg, strlen(client_msg), 0);
-  printf("Client: %s message sent\n", client_msg);
+  while (1) {
+    printf("Enter message to send to server: ");
+    fgets(buffer, BUFFER_SIZE, stdin); // read a line from stdin
+    buffer[strcspn(buffer, "\n")] = 0; // remove newline
 
-  ssize_t valread = recv(sock, buffer, BUFFER_SIZE - 1, 0);
-  if (valread > 0) {
-    printf("Server: %s\n", buffer);
-  } else if (valread == 0) {
-    printf("Server closed connection\n");
-  } else {
-    perror("recv failed");
+    send(sock, buffer, strlen(buffer), 0);
+    printf("Message sent to server\n");
+    // break;
+
+    ssize_t valread = recv(sock, buffer, BUFFER_SIZE - 1, 0);
+    if (valread > 0) {
+      buffer[valread] = '\0';
+      printf("Server: %s\n", buffer);
+    } else if (valread == 0) {
+      printf("Server closed connection\n");
+      break;
+    } else {
+      perror("recv failed");
+    }
   }
 
   close(sock);

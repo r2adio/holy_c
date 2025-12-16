@@ -20,6 +20,7 @@ int main() {
 
   // binds an add and port to the socket
   struct sockaddr_in address;
+  memset(&address, 0, sizeof(address));
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = inet_addr(IP_ADDRESS);
   address.sin_port = htons(PORT);
@@ -35,25 +36,25 @@ int main() {
 
   printf("Server is running and listening on port %d...\n", PORT);
 
-  while (1) {
-    // accept an incoming connection
-    int addrlen = sizeof(address);
-    // accept() does the three-way handshake
-    int new_socket =
-        accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen);
+  // accept an incoming connection
+  int addrlen = sizeof(address);
+  // accept() does the three-way handshake
+  int new_socket =
+      accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen);
 
-    if (new_socket < 0) {
-      perror("Failed to accept connection");
-      continue;
-    }
+  if (new_socket < 0) {
+    perror("Failed to accept connection");
+    return EXIT_FAILURE;
+  }
 
-    printf("Connection accepted.\n");
+  printf("Connection accepted.\n");
 
-    char buffer[BUFFER_SIZE];
-    ssize_t bytes_read = read(new_socket, buffer, sizeof(buffer) - 1);
+  char buffer[BUFFER_SIZE];
+  ssize_t bytes_read;
+  while ((bytes_read = read(new_socket, buffer, sizeof(buffer) - 1)) > 0) {
     if (bytes_read <= 0) {
       close(new_socket);
-      continue;
+      break;
     }
 
     buffer[bytes_read] = '\0';
@@ -64,11 +65,11 @@ int main() {
     snprintf(response, sizeof(response), "Server received your message: %s",
              buffer);
     write(new_socket, response, strlen(response)); // send response to client
-
-    // four-way handshake
-    close(new_socket);
-    printf("Connection closed.\n");
   }
+
+  // four-way handshake
+  close(new_socket);
+  printf("Connection closed.\n");
 
   // close the listening socket
   close(server_fd);
