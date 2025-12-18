@@ -1,6 +1,7 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -46,16 +47,36 @@ int main(int argc, char *argv[]) {
   fprintf(stderr, LOG_INFO "Server is running and listening on port %d...\n",
           PORT);
 
-  struct sockaddr_in client_addr;
-  socklen_t client_addr_len = sizeof(client_addr);
-  if (accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len) <
-      0) {
-    perror(LOG_ERROR "Failed to accept connection");
-    return EXIT_FAILURE;
+  while (1) {
+    int client_fd;
+    struct sockaddr_in client_addr;
+    socklen_t client_addr_len = sizeof(client_addr);
+    if ((client_fd = accept(server_fd, (struct sockaddr *)&client_addr,
+                            &client_addr_len)) < 0) {
+      perror(LOG_ERROR "Failed to accept connection");
+      return EXIT_FAILURE;
+    }
+
+    fprintf(stderr, LOG_INFO "Connection accepted.\n");
+
+    // http response: status line + headers + body
+    const char *resp = "HTTP/1.1 200 OK\r\n"
+                       "Content-Type: text/plain; charset=utf-8\r\n"
+                       "Content-Length: 12\r\n"
+                       "Connection: close\r\n"
+                       "\r\n"
+                       "Hello World!";
+
+    if (send(client_fd, resp, strlen(resp), 0) < 0) {
+      perror(LOG_ERROR "Failed to send response");
+      return EXIT_FAILURE;
+    }
+    fprintf(stderr, LOG_INFO "Response sent.\n");
+
+    close(client_fd);
+    fprintf(stderr, LOG_INFO "Connection closed.\n");
   }
-
-  fprintf(stderr, LOG_INFO "Connection accepted.\n");
-
   close(server_fd);
+  fprintf(stderr, LOG_INFO "Server closed.\n");
   return EXIT_SUCCESS;
 }
