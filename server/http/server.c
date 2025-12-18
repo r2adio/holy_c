@@ -1,4 +1,6 @@
+#include <errno.h>
 #include <netinet/in.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,10 +13,29 @@
 #define LOG_INFO "\x1b[1;32mINFO: \x1b[0m"
 #define LOG_ERROR "\x1b[1;31mERROR: \x1b[0m"
 
+int server_fd = -1;
+volatile sig_atomic_t kr = 1;
+void handle_signal(int sig) {
+  (void)sig;
+  kr = 0;
+
+  if (server_fd != -1) {
+    close(server_fd); // async-signal-safe
+    server_fd = -1;
+  }
+}
+
 int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
-  int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+  struct sigaction sa = {0};
+  sa.sa_handler = handle_signal;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  sigaction(SIGINT, &sa, NULL);
+
+  server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0) {
     perror(LOG_ERROR "Failed to create socket");
     return EXIT_FAILURE;
@@ -47,25 +68,31 @@ int main(int argc, char *argv[]) {
   fprintf(stderr, LOG_INFO "Server is running and listening on port %d...\n",
           PORT);
 
-  while (1) {
+  while (kr) {
     int client_fd;
     struct sockaddr_in client_addr;
     socklen_t client_addr_len = sizeof(client_addr);
     if ((client_fd = accept(server_fd, (struct sockaddr *)&client_addr,
                             &client_addr_len)) < 0) {
+      if (!kr)
+        break;
       perror(LOG_ERROR "Failed to accept connection");
-      return EXIT_FAILURE;
+      continue;
     }
 
     fprintf(stderr, LOG_INFO "Connection accepted.\n");
 
     // http response: status line + headers + body
-    const char *resp = "HTTP/1.1 200 OK\r\n"
-                       "Content-Type: text/plain; charset=utf-8\r\n"
-                       "Content-Length: 12\r\n"
-                       "Connection: close\r\n"
-                       "\r\n"
-                       "Hello World!";
+    char resp[256];
+    const char *resp_body = "Hello World!";
+    snprintf(resp, sizeof(resp),
+             "HTTP/1.1 200 OK\r\n"
+             "Content-Type: text/plain; charset=utf-8\r\n"
+             "Content-Length: %zu\r\n"
+             "Connection: close\r\n"
+             "\r\n"
+             "%s",
+             strlen(resp_body), resp_body);
 
     if (send(client_fd, resp, strlen(resp), 0) < 0) {
       perror(LOG_ERROR "Failed to send response");
@@ -77,6 +104,6 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, LOG_INFO "Connection closed.\n");
   }
   close(server_fd);
-  fprintf(stderr, LOG_INFO "Server closed.\n");
+  fprintf(stderr, "\n" LOG_INFO "Server closed.\n");
   return EXIT_SUCCESS;
 }
