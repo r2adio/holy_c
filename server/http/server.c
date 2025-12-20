@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <errno.h>
 #include <netinet/in.h>
 #include <signal.h>
@@ -82,6 +83,63 @@ int main(int argc, char *argv[]) {
 
     fprintf(stderr, LOG_INFO "Connection accepted.\n");
 
+    // extract url path:
+    char request[4096];
+    ssize_t request_len = recv(client_fd, request, sizeof(request) - 1, 0);
+    if (request_len < 0) {
+      perror(LOG_ERROR "Failed to receive request");
+      return EXIT_FAILURE;
+    }
+    request[request_len] = '\0';
+    // fprintf(stderr, LOG_INFO "Request received: %s\n", request);
+
+    // parse request
+    char method[8], path[1024], version[16];
+    if (sscanf(request, "%7[^ ] %1023[^ ] %15[^\r\n]", method, path, version) !=
+        3) {
+      fprintf(stderr, LOG_ERROR "Failed to parse request");
+      return EXIT_FAILURE;
+    }
+    if (strstr(path, "..") != NULL) {
+      fprintf(stderr, LOG_ERROR "Path traversal detected");
+      return EXIT_FAILURE;
+    }
+    fprintf(stderr, LOG_INFO "Method: %s, Path: %s, Version: %s\n", method,
+            path, version);
+    if (strcmp(path, "/") == 0) { // 200 ok
+      const char *resp_body = "Hello World!";
+      char resp[256];
+      snprintf(resp, sizeof(resp),
+               "HTTP/1.1 200 OK\r\n"
+               "Content-Type: text/plain; charset=utf-8\r\n"
+               "Content-Length: %zu\r\n"
+               "Connection: close\r\n"
+               "\r\n"
+               "%s",
+               strlen(resp_body), resp_body);
+      if (send(client_fd, resp, strlen(resp), 0) < 0) {
+        perror(LOG_ERROR "Failed to send response");
+        return EXIT_FAILURE;
+      }
+      fprintf(stderr, LOG_INFO "Response sent.\n");
+    } else { // 404 not found
+      char resp[256];
+      const char *resp_body = "Not Found";
+      snprintf(resp, sizeof(resp),
+               "HTTP/1.1 404 Not Found\r\n"
+               "Content-Type: text/plain; charset=utf-8\r\n"
+               "Content-Length: %zu\r\n"
+               "Connection: close\r\n"
+               "\r\n"
+               "%s",
+               strlen(resp_body), resp_body);
+      if (send(client_fd, resp, strlen(resp), 0) < 0) {
+        perror(LOG_ERROR "Failed to send response");
+        return EXIT_FAILURE;
+      }
+      fprintf(stderr, LOG_INFO "Response sent.\n");
+    }
+
     // http response: status line + headers + body
     char resp[256];
     const char *resp_body = "Hello World!";
@@ -101,7 +159,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, LOG_INFO "Response sent.\n");
 
     close(client_fd);
-    fprintf(stderr, LOG_INFO "Connection closed.\n");
+    fprintf(stderr, LOG_INFO "Connection closed.\n\n");
   }
   close(server_fd);
   fprintf(stderr, "\n" LOG_INFO "Server closed.\n");
