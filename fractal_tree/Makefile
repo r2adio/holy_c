@@ -1,14 +1,17 @@
 CFLAGS = -Wall -std=c23 $(shell pkg-config --cflags raylib)
 LDFLAGS = $(shell pkg-config --libs raylib)
-
 TARGET = fractal_tree
 SRC = main.c
 
+.PHONY: all build run
 all: build run
 
-build: 
-	$(CC) $(SRC) -o $(TARGET) $(CFLAGS) $(LDFLAGS)
+build: ${TARGET}
+$(TARGET): $(SRC)
+	$(CC) $(CFLAGS) $(SRC) -o $(TARGET) $(LDFLAGS)
 
-run:
+run: $(TARGET)
 	./$(TARGET)
-	rm ./$(TARGET)
+
+clean:
+	rm -f $(TARGET)
