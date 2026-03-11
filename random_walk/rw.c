@@ -53,6 +53,15 @@ SDL_AppResult SDL_AppIterate(void *appState) {
                               SDL_ALPHA_OPAQUE_FLOAT);
   SDL_RenderClear(state->renderer);
 
+  SDL_FRect rect = {
+      100.0f,
+      100.0f,
+      200.0f,
+      200.0f,
+  };
+  SDL_SetRenderDrawColorFloat(state->renderer, 1.0f, 0.0f, 0.0f, 1.0f);
+  SDL_RenderFillRect(state->renderer, &rect);
+
   SDL_RenderPresent(state->renderer);
   return SDL_APP_CONTINUE;
 }
@@ -66,6 +75,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
   SDL_AppState *state = appstate;
+  SDL_DestroyRenderer(state->renderer);
   SDL_DestroyWindow(state->window);
   free(state);
 }
