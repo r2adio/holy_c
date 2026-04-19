@@ -30,7 +30,7 @@ int main(void) {
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(BLACK);
-    fractal_tree(WIN_WIDTH * 0.5, WIN_HEIGHT - 10, 5, 10, -90 * DEG2RAD, 40);
+    fractal_tree(WIN_WIDTH * 0.5, WIN_HEIGHT - 10, 5, 10, -90 * DEG2RAD, 20);
     EndDrawing();
   }
   CloseWindow();
