@@ -1,0 +1,4 @@
+CompileFlags:
+  Add: [
+    -I/nix/store/shg9c7dzml3dsf0r3zv4xvhwwg6vqdcy-raylib-6.0/include
+  ]
