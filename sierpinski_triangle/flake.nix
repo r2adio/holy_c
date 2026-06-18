@@ -13,7 +13,7 @@
     {
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
-          nativeBuildInputs = with pkgs; [ gcc gnumake pkg-config ];
+          nativeBuildInputs = with pkgs; [ gcc gnumake pkg-config bear ];
           buildInputs = with pkgs; [ raylib ];
         };
       });
