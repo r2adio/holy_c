@@ -1,17 +1,20 @@
-CFLAGS := -Wall -std=c23 $(shell pkg-config --cflags raylib)
-LDFLAGS := $(shell pkg-config --libs raylib)
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c23
+RAYLIB_FLAGS = $(shell pkg-config --cflags --libs raylib)
+FRAMEWORKS = -framework Cocoa -framework IOKit -framework CoreVideo
+
 TARGET = d_pendulum
 SRC = main.c
 
-.PHONY: all build run
-all: build run
+all: $(TARGET)
 
-build: ${TARGET}
 $(TARGET): $(SRC)
-	$(CC) $(CFLAGS) $(SRC) -o $(TARGET) $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC) -o $(TARGET) $(RAYLIB_FLAGS) $(FRAMEWORKS)
 
 run: $(TARGET)
 	./$(TARGET)
 
 clean:
 	rm -f $(TARGET)
+
+.PHONY: all run clean

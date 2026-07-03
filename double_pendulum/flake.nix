@@ -1,5 +1,5 @@
 {
-  description = "sierpinski-triangle";
+  description = "double-pendulum";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -13,7 +13,7 @@
     {
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
-          name = "sierpinski_triangle";
+          name = "double_pendulum";
           nativeBuildInputs = with pkgs; [ gcc gnumake pkg-config bear ];
           buildInputs = with pkgs; [ raylib ];
           shellHook = '' exec ${pkgs.zsh}/bin/zsh '';
