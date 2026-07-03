@@ -1,0 +1,4 @@
+xmenu: dmenu for terminal
+
+this is the very first implementation of xmenu.
+this version is vibe coded and uses ncurses.
