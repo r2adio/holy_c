@@ -1,3 +1,4 @@
+#include <math.h>
 #include <raylib.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -6,6 +7,8 @@
 #define WIN_WIDTH  900
 #define WIN_HEIGHT 600
 #define N_COLORS   7
+#define G          (10.0)
+#define SOFTNESS   (10.0)
 
 typedef struct { // Vector2 struct with double
   double x, y;
@@ -68,6 +71,59 @@ void setBodies(Body *b, size_t n, Color colors[N_COLORS], Configuration *cfg) {
   for (size_t i = 0; i < n; i++) generateBody(&b[i], colors, cfg);
 }
 
+double hypotenuse(Body *b1, Body *b2) {
+  double x = b1->pos.x - b2->pos.x;
+  double y = b1->pos.y - b2->pos.y;
+  return sqrt(x * x + y * y);
+}
+
+double calNetwon(Body *b1, Body *b2) {
+  double distance = hypotenuse(b1, b2);
+  return G * b1->mass * b2->mass / (distance * distance + SOFTNESS * SOFTNESS);
+}
+
+void resetForce(Body *b) {
+  b->frce.x = 0;
+  b->frce.y = 0;
+}
+
+void updateForce(Body *b1, Body *b2) {
+  if (b1->active && b2->active && b1 != b2) {
+    double force = calNetwon(b1, b2);
+    double dx = b2->pos.x - b1->pos.x;
+    double dy = b2->pos.y - b1->pos.y;
+
+    double r = hypotenuse(b1, b2);
+    double fx = force * dx / r;
+    double fy = force * dy / r;
+
+    // Fa = -Fb
+    b1->frce.x += fx;
+    b1->frce.y += fy;
+    b2->frce.x -= fx;
+    b2->frce.y -= fy;
+  }
+}
+
+void updateAcc(Body *b) {
+  if (b->active) {
+    b->acc.x = b->frce.x / b->mass;
+    b->acc.y = b->frce.y / b->mass;
+  }
+}
+void updateVel(Body *b, double dt) {
+  if (b->active) {
+    b->vel.x += b->acc.x * dt;
+    b->vel.y += b->acc.y * dt;
+  }
+}
+void updatePos(Body *b, double dt) {
+  if (b->active) {
+    b->pos.x += b->vel.x * dt;
+    b->pos.y += b->vel.y * dt;
+  }
+}
+
 // @brief render active bodies in raylib window
 void renderBodies(Body *b, size_t n) {
   for (size_t i = 0; i < n; i++) {
@@ -89,6 +145,17 @@ int main(void) {
   setBodies(bodies, n, colors, &cfg);
 
   while (!WindowShouldClose()) {
+    cfg.dt = GetFrameTime();
+    for (size_t i = 0; i < n; i++) resetForce(&bodies[i]);
+    for (size_t i = 0; i < n; i++) {
+      for (size_t j = 0; j < n; j++) updateForce(&bodies[i], &bodies[j]);
+    }
+    for (size_t i = 0; i < n; i++) {
+      updateAcc(&bodies[i]);
+      updateVel(&bodies[i], cfg.dt);
+      updatePos(&bodies[i], cfg.dt);
+    }
+
     BeginDrawing();
     ClearBackground(BLACK);
     renderBodies(bodies, n); // entry point
