@@ -5,11 +5,12 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define WIN_WIDTH  900
-#define WIN_HEIGHT 600
-#define N_COLORS   7
-#define G          (10.0)
-#define SOFTNESS   (10.0)
+#define WIN_WIDTH      900
+#define WIN_HEIGHT     600
+#define N_COLORS       7
+#define G              (1.0)
+#define SOFTNESS       (10.0)
+#define LAST_POSITIONS 10
 
 typedef struct { // Vector2 struct with double
   double x, y;
@@ -20,10 +21,12 @@ typedef struct {
   Vector2D vel;
   Vector2D acc;  // acceleration
   Vector2D frce; // force
+  Vector2D lastpos[LAST_POSITIONS];
   double radius;
   double mass;
   Color color;
   uint8_t active; // 0 or 1
+  size_t framecounter;
 } Body;
 
 typedef struct {
@@ -66,6 +69,12 @@ void generateBody(Body *b, Color colors[N_COLORS], Configuration *cfg) {
   b->mass = getRandomD(b->radius * b->radius, b->radius * b->radius * 10);
 
   b->active = 1; // is active
+
+  for (size_t i = 0; i < LAST_POSITIONS; i++) { // used for rendering trails, inital state
+    b->lastpos[i].x = -1;
+    b->lastpos[i].y = -1;
+  }
+  b->framecounter = 0;
 }
 
 // @brief generate `n` number of bodies with set color and configurations
@@ -140,6 +149,20 @@ void updateActiveBod(Body *b, size_t n, Configuration *cfg) {
   cfg->activeBodies = num;
 }
 
+void updateLastPostition(Body *b) {
+  if (!b->active) return;
+  b->framecounter++;
+  if (b->framecounter % 5 == 0) {
+    for (size_t i = LAST_POSITIONS - 1; i > 0; i--) {
+      b->lastpos[i].x = b->lastpos[i - 1].x;
+      b->lastpos[i].y = b->lastpos[i - 1].y;
+    }
+    b->lastpos[0].x = b->pos.x;
+    b->lastpos[0].y = b->pos.y;
+  }
+  if (b->framecounter >= 1000) b->framecounter = 0; // counter reset
+}
+
 int isColliding(Body *b1, Body *b2) {
   if (b1->active && b2->active && b1 != b2) {
     double centerDist = hypotenuse(b1, b2);
@@ -170,6 +193,21 @@ void renderBodies(Body *b, size_t n) {
   }
 }
 
+void renderTrails(Body *b, size_t n) {
+  for (size_t i = 0; i < n; i++) {
+    if (!b[i].active) continue;
+    for (size_t j = 0; j < LAST_POSITIONS; j++) {
+      float posx = b[i].lastpos[j].x;
+      float posy = b[i].lastpos[j].y;
+
+      if (posx != -1) {
+        float resize = (LAST_POSITIONS - (j + 1)) / 10.0;
+        DrawCircle(posx, posy, b[i].radius * resize, b[i].color);
+      }
+    }
+  }
+}
+
 int main(void) {
   InitWindow(WIN_WIDTH, WIN_HEIGHT, "nbody simulation");
   SetTargetFPS(60);
@@ -177,7 +215,7 @@ int main(void) {
   srand(time(NULL));
   Color colors[N_COLORS] = {VIOLET, WHITE, BLUE, GREEN, YELLOW, ORANGE, RED};
 
-  size_t n = 100; // number of active bodies
+  size_t n = 1000; // number of active bodies
   Body *bodies = malloc(n * sizeof(Body));
   Configuration cfg = {.minR = 1, .maxR = 9, .initVel = 15, .activeBodies = n};
   setBodies(bodies, n, colors, &cfg);
@@ -192,6 +230,8 @@ int main(void) {
       }
     }
     updateActiveBod(bodies, n, &cfg); // after collision
+    if (cfg.activeBodies <= 50)
+      for (size_t i = 0; i < n; i++) updateLastPostition(&bodies[i]);
     for (size_t i = 0; i < n; i++) {
       updateAcc(&bodies[i]);
       updateVel(&bodies[i], cfg.dt);
@@ -200,6 +240,7 @@ int main(void) {
 
     BeginDrawing();
     ClearBackground(BLACK);
+    renderTrails(bodies, n);
     renderBodies(bodies, n); // entry point
     DrawText(TextFormat("active bodies: %zu", cfg.activeBodies), 10, 10, 30, WHITE);
     EndDrawing();
