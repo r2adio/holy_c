@@ -1,6 +1,7 @@
 #include <math.h>
 #include <raylib.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -30,6 +31,7 @@ typedef struct {
   double maxR;
   double initVel;
   double dt;
+  size_t activeBodies; // num of active bodies
 } Configuration;
 
 double getRandomD(double min, double max) {
@@ -124,6 +126,42 @@ void updatePos(Body *b, double dt) {
   }
 }
 
+/**
+ * @brief update the active body count after collisions
+ *
+ * @param b referece to Body, checks their active status
+ * @param n number of active bodies
+ * @param cfg reference to Configuration
+ */
+void updateActiveBod(Body *b, size_t n, Configuration *cfg) {
+  size_t num = 0;
+  for (size_t i = 0; i < n; i++)
+    if (b[i].active) num++;
+  cfg->activeBodies = num;
+}
+
+int isColliding(Body *b1, Body *b2) {
+  if (b1->active && b2->active && b1 != b2) {
+    double centerDist = hypotenuse(b1, b2);
+    if (centerDist <= (b1->radius + b2->radius)) return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
+}
+void merge(Body *b1, Body *b2) {
+  if (!b1->active || !b2->active) return;
+  if (isColliding(b1, b2)) {
+    uint8_t activity = b1->radius > b2->radius ? 1 : 0;
+    b1->active = activity;
+    b2->active = !activity;
+
+    double newMass = b1->mass + b2->mass; // note: updating radius w/ mass -> BAD IDEA!!
+    // TraceLog(LOG_INFO, "previous mass: %f and %f", b1->mass, b2->mass);
+    // TraceLog(LOG_INFO, "new mass: %f", newMass);
+    (b1->active ? b1 : b2)->mass = newMass;
+    // if (b1->active) b1->mass = newMass; else b2->mass = newMass;
+  }
+}
+
 // @brief render active bodies in raylib window
 void renderBodies(Body *b, size_t n) {
   for (size_t i = 0; i < n; i++) {
@@ -141,15 +179,19 @@ int main(void) {
 
   size_t n = 100; // number of active bodies
   Body *bodies = malloc(n * sizeof(Body));
-  Configuration cfg = {.minR = 1, .maxR = 9, .initVel = 15};
+  Configuration cfg = {.minR = 1, .maxR = 9, .initVel = 15, .activeBodies = n};
   setBodies(bodies, n, colors, &cfg);
 
   while (!WindowShouldClose()) {
     cfg.dt = GetFrameTime();
     for (size_t i = 0; i < n; i++) resetForce(&bodies[i]);
     for (size_t i = 0; i < n; i++) {
-      for (size_t j = 0; j < n; j++) updateForce(&bodies[i], &bodies[j]);
+      for (size_t j = 0; j < n; j++) {
+        updateForce(&bodies[i], &bodies[j]);
+        merge(&bodies[i], &bodies[j]);
+      }
     }
+    updateActiveBod(bodies, n, &cfg); // after collision
     for (size_t i = 0; i < n; i++) {
       updateAcc(&bodies[i]);
       updateVel(&bodies[i], cfg.dt);
@@ -159,6 +201,7 @@ int main(void) {
     BeginDrawing();
     ClearBackground(BLACK);
     renderBodies(bodies, n); // entry point
+    DrawText(TextFormat("active bodies: %zu", cfg.activeBodies), 10, 10, 30, WHITE);
     EndDrawing();
   }
   CloseWindow();
