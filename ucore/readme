@@ -1,0 +1,6 @@
+this is my attempt to write core utils in c and understand them better.
+
+list of core utils in here:
+- ls `took inspiration from tony-btw video: "How to Actually Learn C (2027 edition)`
+
+NOTE: do compile and run these on linux system, go get expected results.
